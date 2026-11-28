@@ -100,3 +100,8 @@ the first tap as a reveal. The timer starts on that reveal, and subsequent taps 
 **A missing folder is not an empty folder to `readdirSync`.** Reading a directory that does not exist throws
 a raw ENOENT; check `existsSync` first when "not there yet" is an expected state, so the caller can print its
 readable message instead of a file-system error.
+
+**A broken `game.json` failed with the parser's message and no file name.** `JSON.parse` on a truncated manifest
+printed only `Unexpected end of JSON input`, so `list`, `record`, `pack` and `verify` gave no clue which game was
+broken. Wrap the parse in `loadGame` and report the path relative to the repository, keeping the parser's message;
+when several files can fail the same way, name the one that failed.

@@ -22,6 +22,21 @@ function copyRepo() {
 }
 const check = (dir) => spawnSync(process.execPath, [path.join(dir, "scripts", "bundle.mjs"), "--check"], { encoding: "utf8" });
 
+test("bundle with an unknown option names it and exits 2 without writing anything", () => {
+  const dir = copyRepo();
+  try {
+    const page = path.join(dir, "docs", "play", "mines.html");
+    const before = fs.readFileSync(page, "utf8");
+    const r = spawnSync(process.execPath, [path.join(dir, "scripts", "bundle.mjs"), "--chek"], { encoding: "utf8" });
+    assert.equal(r.status, 2);
+    assert.equal(r.stderr.split("\n")[0], 'bundle.mjs: unknown option "--chek"');
+    assert.equal(r.stdout, "");
+    assert.equal(fs.readFileSync(page, "utf8"), before);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("bundle --check passes when every play page matches its web port", () => {
   const dir = copyRepo();
   try {
