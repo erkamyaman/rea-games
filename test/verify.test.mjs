@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { verifyGames, summaryLines, crashReason } from "../lib/verify.mjs";
+import { verifyGames, summaryLines, crashReason, loadGame } from "../lib/verify.mjs";
 
 // A port that answers every case with the recorded trace.
 const ECHO_PORT = `let s = "";
@@ -32,15 +32,45 @@ function makeRoot(games) {
 const quiet = () => {};
 const BROKEN_BUILD = { build: ["node", "-e", "process.exit(1)"] };
 
+test("loadGame names the game.json it cannot parse", () => {
+  const root = makeRoot({ a: { web: {} } });
+  try {
+    fs.writeFileSync(path.join(root, "games", "a", "game.json"), '{"name":');
+    assert.throws(() => loadGame(root, "a"), (e) =>
+      e.message.startsWith("games/a/game.json is not valid JSON:") &&
+      e.message.includes("Unexpected end of JSON input"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a failing build is that port's failure, and the other ports and games still run", () => {
   const root = makeRoot({ a: { web: {}, broken: BROKEN_BUILD, last: {} }, b: { web: {} } });
   try {
     const results = verifyGames(root, ["a", "b"], null, quiet);
     assert.deepEqual(results.map((r) => `${r.name}/${r.port}`), ["a/web", "a/broken", "a/last", "b/web"]);
     const broken = results.find((r) => r.port === "broken");
-    assert.match(broken.error, /build of a\/broken failed/);
+    assert.equal(broken.error, "build of a/broken failed");
     for (const r of results.filter((r) => r !== broken)) assert.deepEqual([r.error, r.passed, r.cases], [undefined, 1, 1]);
   } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a missing build command names the command and for cargo points to rustup", () => {
+  const missingCargo = { build: ["cargo", "build"] };
+  const missingGeneric = { build: ["rea-games-no-such-builder"] };
+  const root = makeRoot({ a: { bevy: missingCargo, other: missingGeneric } });
+  const savedPath = process.env.PATH;
+  process.env.PATH = ""; // ensure cargo cannot be found even on machines with Rust installed
+  try {
+    const results = verifyGames(root, ["a"], null, quiet);
+    const bevy = results.find((r) => r.port === "bevy");
+    assert.equal(bevy.error, "build of a/bevy failed: cargo not found (install Rust from https://rustup.rs)");
+    const other = results.find((r) => r.port === "other");
+    assert.equal(other.error, "build of a/other failed: rea-games-no-such-builder not found");
+  } finally {
+    process.env.PATH = savedPath;
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
@@ -263,6 +293,42 @@ test("a game with no cases folder fails the same way as an empty one", () => {
       "a / web  => FAIL no recorded cases in games/a/cases; run: rea-games record a",
       "b / web  => 1/1 cases identical, 2 inputs, 2 recorded states",
     ]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a truncated case names its file and the other cases still run", () => {
+  const root = makeRoot({ a: { web: {} } });
+  const cases = path.join(root, "games", "a", "cases");
+  fs.copyFileSync(path.join(cases, "one.json"), path.join(cases, "two.json"));
+  fs.writeFileSync(path.join(cases, "one.json"), '{"inputs":[');
+  try {
+    const lines = [];
+    const [r] = verifyGames(root, ["a"], null, (l) => lines.push(l));
+    assert.equal(r.error, undefined);
+    assert.deepEqual([r.cases, r.passed], [2, 1]);
+    assert.deepEqual(r.failures, [{ file: "one.json", problem: "cannot read the case (Unexpected end of JSON input)" }]);
+    assert.ok(lines.includes("  FAIL one.json: cannot read the case (Unexpected end of JSON input)"), lines.join("\n"));
+    assert.ok(lines.includes("  ok   two.json  (2 inputs)"), lines.join("\n"));
+    assert.deepEqual(summaryLines([r]), ["a / web  => FAIL 1/2 cases identical, 2 inputs, 2 recorded states"]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a .json.gz that is not gzip names its file and the other cases still run", () => {
+  const root = makeRoot({ a: { web: {} } });
+  const cases = path.join(root, "games", "a", "cases");
+  fs.writeFileSync(path.join(cases, "bad.json.gz"), "notgzip");
+  try {
+    const lines = [];
+    const [r] = verifyGames(root, ["a"], null, (l) => lines.push(l));
+    assert.equal(r.error, undefined);
+    assert.deepEqual([r.cases, r.passed], [2, 1]);
+    assert.deepEqual(r.failures, [{ file: "bad.json.gz", problem: "cannot read the case (incorrect header check)" }]);
+    assert.ok(lines.includes("  FAIL bad.json.gz: cannot read the case (incorrect header check)"), lines.join("\n"));
+    assert.ok(lines.includes("  ok   one.json  (2 inputs)"), lines.join("\n"));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

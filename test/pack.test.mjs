@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import { formatSize, loadCases, loadGame, packCases, packLine } from "../lib/verify.mjs";
 
 // Every shipped game has packed cases, so both sides of pack/load need a test of their own.
@@ -108,6 +110,32 @@ test("an unknown game and a game with no cases yet say what to do", () => {
     fs.writeFileSync(path.join(root, "games", "fresh", "game.json"), JSON.stringify({ name: "fresh", ports: {} }));
     assert.throws(() => loadGame(root, "nope"), { message: 'no game "nope" (games: fresh, known). Create one with: rea-games new nope' });
     assert.throws(() => packCases(root, "fresh"), { message: "fresh has no cases yet; run: rea-games record fresh" });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pack all continues when a game has no cases and exits 1", () => {
+  const root = tempRoot();
+  try {
+    makeGame(root, "aaa", {});
+    makeGame(root, "zzz", { a: caseText(10) });
+    // Remove cases folder from aaa
+    fs.rmSync(path.join(root, "games", "aaa", "cases"), { recursive: true, force: true });
+
+    // Copy bin, lib, package.json so rea-games runs in root
+    const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+    fs.cpSync(path.join(repoRoot, "bin"), path.join(root, "bin"), { recursive: true });
+    fs.cpSync(path.join(repoRoot, "lib"), path.join(root, "lib"), { recursive: true });
+    fs.copyFileSync(path.join(repoRoot, "package.json"), path.join(root, "package.json"));
+
+    const run = spawnSync(process.execPath, [path.join(root, "bin", "rea-games.mjs"), "pack", "all"], {
+      encoding: "utf8",
+    });
+    assert.equal(run.status, 1);
+    const lines = (run.stdout + run.stderr).split("\n").filter(Boolean);
+    assert.ok(lines.some((l) => l.includes("aaa has no cases yet; run: rea-games record aaa")));
+    assert.ok(lines.some((l) => l.startsWith("zzz:")));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
