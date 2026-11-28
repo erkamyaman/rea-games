@@ -137,6 +137,17 @@ test("verify --port with no value, or followed by a flag, exits 2 with the game'
   assert.equal(end.stderr.trim(), "--port needs a value (2048 has: web, godot, bevy)");
 });
 
+test("verify and pack with a second game name exit 2 before anything runs", () => {
+  const v = run("verify", "mines", "paddles", "--port", "web");
+  assert.equal(v.status, 2);
+  assert.equal(v.stderr.trim(), "rea-games: verify takes one game (or all), got: mines paddles");
+  assert.equal(v.stdout, "");
+  const p = run("pack", "mines", "paddles");
+  assert.equal(p.status, 2);
+  assert.equal(p.stderr.trim(), "rea-games: pack takes one game (or all), got: mines paddles");
+  assert.equal(p.stdout, "");
+});
+
 test("verify reads --port=<name> like --port <name>", () => {
   const r = run("verify", "2048", "--port=nope");
   assert.equal(r.status, 1);

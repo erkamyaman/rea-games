@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { verifyGames, summaryLines, crashReason } from "../lib/verify.mjs";
+import { verifyGames, summaryLines, crashReason, loadGame } from "../lib/verify.mjs";
 
 // A port that answers every case with the recorded trace.
 const ECHO_PORT = `let s = "";
@@ -32,15 +32,45 @@ function makeRoot(games) {
 const quiet = () => {};
 const BROKEN_BUILD = { build: ["node", "-e", "process.exit(1)"] };
 
+test("loadGame names the game.json it cannot parse", () => {
+  const root = makeRoot({ a: { web: {} } });
+  try {
+    fs.writeFileSync(path.join(root, "games", "a", "game.json"), '{"name":');
+    assert.throws(() => loadGame(root, "a"), (e) =>
+      e.message.startsWith("games/a/game.json is not valid JSON:") &&
+      e.message.includes("Unexpected end of JSON input"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a failing build is that port's failure, and the other ports and games still run", () => {
   const root = makeRoot({ a: { web: {}, broken: BROKEN_BUILD, last: {} }, b: { web: {} } });
   try {
     const results = verifyGames(root, ["a", "b"], null, quiet);
     assert.deepEqual(results.map((r) => `${r.name}/${r.port}`), ["a/web", "a/broken", "a/last", "b/web"]);
     const broken = results.find((r) => r.port === "broken");
-    assert.match(broken.error, /build of a\/broken failed/);
+    assert.equal(broken.error, "build of a/broken failed");
     for (const r of results.filter((r) => r !== broken)) assert.deepEqual([r.error, r.passed, r.cases], [undefined, 1, 1]);
   } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a missing build command names the command and for cargo points to rustup", () => {
+  const missingCargo = { build: ["cargo", "build"] };
+  const missingGeneric = { build: ["rea-games-no-such-builder"] };
+  const root = makeRoot({ a: { bevy: missingCargo, other: missingGeneric } });
+  const savedPath = process.env.PATH;
+  process.env.PATH = ""; // ensure cargo cannot be found even on machines with Rust installed
+  try {
+    const results = verifyGames(root, ["a"], null, quiet);
+    const bevy = results.find((r) => r.port === "bevy");
+    assert.equal(bevy.error, "build of a/bevy failed: cargo not found (install Rust from https://rustup.rs)");
+    const other = results.find((r) => r.port === "other");
+    assert.equal(other.error, "build of a/other failed: rea-games-no-such-builder not found");
+  } finally {
+    process.env.PATH = savedPath;
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
