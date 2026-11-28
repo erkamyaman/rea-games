@@ -12,7 +12,7 @@ Keep these sections in this order, with these headings. Each one says what goes 
 
 ### What was recorded
 
-How the original was run and recorded (the harness, the inputs, what one case is) and how many cases there are. Example: [games/blocks/GAME.md](../games/blocks/GAME.md) ("What was recorded and how"); [games/dino/GAME.md](../games/dino/GAME.md) puts the harness in section 1, "How the original is run (the harness)".
+How the original was run and recorded (the harness, the inputs, what one case is) and how many cases there are. Example: [games/blocks/GAME.md](../games/blocks/GAME.md); [games/dino/GAME.md](../games/dino/GAME.md) puts the harness in section 1, "How the original is run (the harness)".
 
 ### State that is compared
 
@@ -28,11 +28,11 @@ Required when the game draws random numbers; omit it when it does not. Say how d
 
 ### Order of operations in one step
 
-The rules, as the ordered steps inside one step (one frame), with the formulas. Per-entity detail (the dino, obstacles, collision) goes in subsections under it. Example: [games/blocks/GAME.md](../games/blocks/GAME.md) ("Order of operations in one rendered frame"); [games/canvas-bird/GAME.md](../games/canvas-bird/GAME.md).
+The rules, as the ordered steps inside one step (one frame), with the formulas. Per-entity detail (the dino, obstacles, collision) goes in subsections under it. Example: [games/blocks/GAME.md](../games/blocks/GAME.md); [games/canvas-bird/GAME.md](../games/canvas-bird/GAME.md).
 
 ### Quirks
 
-Oddities and bugs the original has, kept on purpose, with the evidence from the recording. Example: [games/2048/GAME.md](../games/2048/GAME.md) ("Quirks worth knowing"); [games/blocks/GAME.md](../games/blocks/GAME.md) ("Quirks (kept on purpose, all in the recording)").
+Oddities and bugs the original has, kept on purpose, with the evidence from the recording. Example: [games/2048/GAME.md](../games/2048/GAME.md) ("Quirks worth knowing"); [games/blocks/GAME.md](../games/blocks/GAME.md).
 
 ### Not modelled, and why that is safe
 
@@ -40,7 +40,7 @@ Everything left out, each with why it cannot change the trace. Example: [games/c
 
 ### Coverage
 
-What the cases cover, read off the traces, not from the port. Example: [games/canvas-bird/GAME.md](../games/canvas-bird/GAME.md) ("Coverage of the recording"); [games/blocks/GAME.md](../games/blocks/GAME.md) ("Coverage of the recordings").
+What the cases cover, read off the traces, not from the port. Example: [games/canvas-bird/GAME.md](../games/canvas-bird/GAME.md) ("Coverage of the recording"); [games/blocks/GAME.md](../games/blocks/GAME.md).
 
 ### Not covered
 

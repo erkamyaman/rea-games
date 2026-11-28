@@ -4,7 +4,7 @@ Original: a falling-blocks puzzle (MIT), vendored unmodified in `originals/block
 game code inline; `stats.js` is an FPS widget, `texture.jpg` a CSS background). The port in `ports/web/blocks.mjs`
 was written from this page and from reading the original's rules, not by translating them line by line.
 
-## What was recorded and how
+## What was recorded
 
 The page runs unmodified in headless Chrome (`driver.mjs`). Its state lives in top-level `var`s, so it is read from
 the live page after every frame: `blocks`, `current`, `next`, `pieces` (the bag), `score`, `vscore`, `rows`, `step`,
@@ -20,10 +20,13 @@ the live page after every frame: `blocks`, `current`, `next`, `pieces` (the bag)
 
 A case is `{game, name, seed, clock0, tape, inputs: [{dt, keys}], trace}`; `keys` is an ordered list of
 `left right up down esc space play`. `trace[0]` is the state after load, `trace[i]` the state after `inputs[i-1]`.
+The inputs come from scripted players and bots that look only at the previous state (`record.mjs`).
+
+## State that is compared
+
 A state is `{grid: 20 strings of 10 chars ('.' or piece letter), current: {type, x, y, dir}, next: {...}, bag: letters
 left in the bag in splice order, score, vscore, rows, step, dt (the gravity accumulator), playing, actions
 (queued actions: 0 up/rotate, 1 right, 2 down, 3 left)}`. Numbers are compared exactly (`lib/compare.mjs`).
-The inputs come from scripted players and bots that look only at the previous state (`record.mjs`).
 
 ## Constants
 
@@ -50,7 +53,7 @@ Two numbers per piece, always in that order. The bag is a global that survives a
 `reset()` draws `current` then `next` (4 numbers). Every start (`play()` runs `reset()`) moves `next` to `current`
 and draws one new `next` (2 numbers). Every lock draws one new `next` (2 numbers).
 
-## Order of operations in one rendered frame
+## Order of operations in one step
 
 A step is: the key events (in order), then the animation callback `frame()`: `now = floor(t)`,
 `update(min(1, (now - last) / 1000))`, `last = now`. `update(idt)`:
@@ -96,17 +99,7 @@ them.
 `vscore` is the displayed score: it catches up to `score` one point per frame while playing. Nothing reads it for
 play, but it is in the trace and compared exactly, so the port has it.
 
-## What is NOT modelled, and why that is safe
-
-- **Rendering** (`draw`, `drawCourt`, `drawNext`, `drawBlock`, the `invalid*` flags, `resize`, `dx`/`dy`): they only
-  read the game variables and write to the canvases and two text nodes. None of them writes a game variable.
-- **The stats widget** (`stats.js`, `stats.update()`): it reads the clock and draws into its own canvases.
-- **The start link's visibility and the texture**: CSS and the `visibility` style of one element.
-- **Window resize**: changes only pixel sizes.
-- **Real key events beyond `keyCode`**: the page reads only `keyCode` from `keydown`; repeats arrive as more
-  `keydown` events, which the cases model as more `keys` entries.
-
-## Quirks (kept on purpose, all in the recording)
+## Quirks
 
 - The bag's last piece is skipped until it is alone (index `floor(r * (len - 1))`). With one piece left the index is 0.
 - `Math.round` on the spawn column: `round(r * (10 - size))`, so a size-4 piece spawns in columns 0..6 and columns 0 and
@@ -126,7 +119,17 @@ play, but it is in the trace and compared exactly, so the port has it.
   the game first; the recording never reaches it).
 - Escape while playing ends the game with no points added; there is no pause.
 
-## Coverage of the recordings
+## Not modelled, and why that is safe
+
+- **Rendering** (`draw`, `drawCourt`, `drawNext`, `drawBlock`, the `invalid*` flags, `resize`, `dx`/`dy`): they only
+  read the game variables and write to the canvases and two text nodes. None of them writes a game variable.
+- **The stats widget** (`stats.js`, `stats.update()`): it reads the clock and draws into its own canvases.
+- **The start link's visibility and the texture**: CSS and the `visibility` style of one element.
+- **Window resize**: changes only pixel sizes.
+- **Real key events beyond `keyCode`**: the page reads only `keyCode` from `keydown`; repeats arrive as more
+  `keydown` events, which the cases model as more `keys` entries.
+
+## Coverage
 
 Read off the traces by `analyze()` in `record.mjs` (independent of the port). 36 cases, 104,208 inputs, 104,244 states,
 created by `rea-games record blocks` (cases are stored gzipped, 1.2 MB):
@@ -149,3 +152,7 @@ created by `rea-games record blocks` (cases are stored gzipped, 1.2 MB):
 
 The analyzer's own prediction of every handled rotation (turns or not, from the previous grid) agreed with the
 original in all cases (0 mismatches), which checks the bots' copy of the shapes and the reading of the queue.
+
+## Not covered
+
+Only three recorded frames include a second drop after a loss in the same frame. No recording reaches a full top row.
