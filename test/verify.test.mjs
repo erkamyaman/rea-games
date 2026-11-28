@@ -38,9 +38,27 @@ test("a failing build is that port's failure, and the other ports and games stil
     const results = verifyGames(root, ["a", "b"], null, quiet);
     assert.deepEqual(results.map((r) => `${r.name}/${r.port}`), ["a/web", "a/broken", "a/last", "b/web"]);
     const broken = results.find((r) => r.port === "broken");
-    assert.match(broken.error, /build of a\/broken failed/);
+    assert.equal(broken.error, "build of a/broken failed");
     for (const r of results.filter((r) => r !== broken)) assert.deepEqual([r.error, r.passed, r.cases], [undefined, 1, 1]);
   } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a missing build command names the command and for cargo points to rustup", () => {
+  const missingCargo = { build: ["cargo", "build"] };
+  const missingGeneric = { build: ["rea-games-no-such-builder"] };
+  const root = makeRoot({ a: { bevy: missingCargo, other: missingGeneric } });
+  const savedPath = process.env.PATH;
+  process.env.PATH = ""; // ensure cargo cannot be found even on machines with Rust installed
+  try {
+    const results = verifyGames(root, ["a"], null, quiet);
+    const bevy = results.find((r) => r.port === "bevy");
+    assert.equal(bevy.error, "build of a/bevy failed: cargo not found (install Rust from https://rustup.rs)");
+    const other = results.find((r) => r.port === "other");
+    assert.equal(other.error, "build of a/other failed: rea-games-no-such-builder not found");
+  } finally {
+    process.env.PATH = savedPath;
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
