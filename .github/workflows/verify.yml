@@ -20,3 +20,16 @@ jobs:
           grep " Godot_v${V}_linux.x86_64.zip" SUMS | sed 's/Godot_v.*/godot.zip/' | sha512sum -c -
           unzip -q godot.zip; echo "REA_GODOT=$PWD/Godot_v${V}_linux.x86_64" >> $GITHUB_ENV
       - run: node bin/rea-games.mjs verify all
+  node-22:
+    name: verify (Node 22, web ports only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - name: Unit tests (lib/, Node only)
+        run: npm test
+      - name: Play pages match their web ports
+        run: node scripts/bundle.mjs --check
+      - name: Web ports replay every case
+        run: node bin/rea-games.mjs verify all --port web
