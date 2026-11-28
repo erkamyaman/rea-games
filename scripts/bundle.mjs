@@ -124,6 +124,11 @@ export function bundleAll(rootDir = root, { check = false } = {}) {
 }
 
 function main() {
+  const extra = process.argv.slice(2).filter((a) => a !== "--check");
+  if (extra.length) {
+    console.error(`bundle.mjs: unknown option "${extra[0]}"`);
+    process.exit(2);
+  }
   const check = process.argv.includes("--check");
   const { failed, stale } = bundleAll(root, { check });
   if (check) {
