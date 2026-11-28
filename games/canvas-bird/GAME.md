@@ -5,19 +5,7 @@ The port in `ports/web/bird.mjs` was written from this page, not by translating 
 
 ## What was recorded and how
 
-The page runs unmodified in headless Chrome (`driver.mjs`). Its state is inside the IIFE, so it is observed
-black-box through the canvas 2D context: `clearRect`, `drawImage`, `fillText` and `strokeText` are wrapped
-(and so are the `fillStyle` / `strokeStyle` setters, to keep the raw string that was assigned). Everything the
-player can see is one of those calls, so a frame is the list of its calls, as strings, numbers printed exactly
-as JavaScript prints them (nothing is rounded):
-
-| string | call |
-|---|---|
-| `c:0:0:640:480` | `clearRect` |
-| `i:enemy_up:x:y` | `drawImage(img, x, y)`, image named by its file |
-| `s:player:sx:0:64:64:70:y:64:64` | `drawImage` with a source rectangle (the bird, 3 sprite frames) |
-| `t:fill|stroke:text:x:y:style` | `fillText` / `strokeText` with the style string last assigned |
-| `a:point`, `a:lose` | `Audio.play()` of the point / lose sound was requested |
+The page runs unmodified in headless Chrome (`driver.mjs`). 
 
 Only its inputs are replaced:
 
@@ -35,6 +23,22 @@ step, `trace[i]` is the frame of `inputs[i-1]`. The inputs come from small scrip
 previous frame's draw list (`record.mjs`), so they react to the game; the port gets the inputs and the tape and
 nothing else.
 
+## State that is compared
+
+Its state is inside the IIFE, so it is observed
+black-box through the canvas 2D context: `clearRect`, `drawImage`, `fillText` and `strokeText` are wrapped
+(and so are the `fillStyle` / `strokeStyle` setters, to keep the raw string that was assigned). Everything the
+player can see is one of those calls, so a frame is the list of its calls, as strings, numbers printed exactly
+as JavaScript prints them (nothing is rounded):
+
+| string | call |
+|---|---|
+| `c:0:0:640:480` | `clearRect` |
+| `i:enemy_up:x:y` | `drawImage(img, x, y)`, image named by its file |
+| `s:player:sx:0:64:64:70:y:64:64` | `drawImage` with a source rectangle (the bird, 3 sprite frames) |
+| `t:fill|stroke:text:x:y:style` | `fillText` / `strokeText` with the style string last assigned |
+| `a:point`, `a:lose` | `Audio.play()` of the point / lose sound was requested |
+
 ## Constants
 
 | | |
@@ -47,7 +51,11 @@ nothing else.
 | frame gate | 30 fps = 1000/30 = 33.333... ms |
 | text | `Click to start game` at x = 90, y = 80; the score at x = 309 (stroke, y 51) and 310 (fill, y 50) |
 
-## Order of operations in one rendered frame
+## Randomness (the tape order)
+
+`Math.random` is a seeded generator; every value it hands out is saved as `tape`. At the start of a round, five new pipe sets are made, one random number each, in order 0..4, and those first five numbers fix the gap heights of the five sets. When a pipe is recycled, one random number is taken for a new offset, but its `y` is not recomputed: `yOffset` is stored and never used. Later random numbers are therefore consumed (and must be, to keep the tape in step) but change nothing on screen.
+
+## Order of operations in one step
 
 A step is: (click handler, if clicked) then the animation callback.
 
@@ -75,7 +83,7 @@ if this set is `next` and its x + 64 < 134, `next` advances and, if controls are
 down pipe moves 3 px after the up pipe in the same frame, so after the first recycle the two images of a set are
 3 px apart in x for ever.
 
-## Collision
+### Collision
 
 Only `pipes[next]` is looked at. With `right = 134` (bird x + 64, the front edge), `px = down.x + 40`:
 
@@ -89,7 +97,7 @@ moving (and recycling, and taking random numbers) until the bird is below the sc
 A hit above the top does not end the round either: the bird (controls off) falls back onto the screen and out of
 the bottom, so a "top exit" costs a few dozen extra frames before the splash.
 
-## What the 30 fps gate really does
+### What the 30 fps gate really does
 
 Two clocks are compared with `now - counter > 33.33`:
 
@@ -104,7 +112,7 @@ Two clocks are compared with `now - counter > 33.33`:
   drawn three times; with 8 ms steps four frames do not fall and y = 20 is drawn five times. Recorded in
   `click-at-load-60fps` and `click-at-load-8ms`.
 
-## Quirks found
+## Quirks
 
 - The gate above: "30 fps lock for falling" does not lock anything after the first 34 ms.
 - Recycled pipes get a new random offset but their `y` is not recomputed: `yOffset` is stored and never used. The
@@ -133,9 +141,9 @@ Two clocks are compared with `now - counter > 33.33`:
 - **Everything not reachable through the page's one click handler:** no keyboard, touch or other events exist in
   the original, so the inputs `{dt, click}` are all there is.
 
-## Coverage of the recording (read off the traces by `analyze()` in `record.mjs`, not from the port)
+## Coverage
 
-30 cases, 68,409 inputs, 68,439 recorded frames (28 MB of JSON), seeds 1 to 41, steps of 8, 16.667, 20, 33, 50
+Read off the traces by `analyze()` in `record.mjs`, not from the port. 30 cases, 68,409 inputs, 68,439 recorded frames (28 MB of JSON), seeds 1 to 41, steps of 8, 16.667, 20, 33, 50
 and 100 ms (and a random mix of all six).
 
 | what | count |
