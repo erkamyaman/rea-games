@@ -297,3 +297,39 @@ test("a game with no cases folder fails the same way as an empty one", () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a truncated case names its file and the other cases still run", () => {
+  const root = makeRoot({ a: { web: {} } });
+  const cases = path.join(root, "games", "a", "cases");
+  fs.copyFileSync(path.join(cases, "one.json"), path.join(cases, "two.json"));
+  fs.writeFileSync(path.join(cases, "one.json"), '{"inputs":[');
+  try {
+    const lines = [];
+    const [r] = verifyGames(root, ["a"], null, (l) => lines.push(l));
+    assert.equal(r.error, undefined);
+    assert.deepEqual([r.cases, r.passed], [2, 1]);
+    assert.deepEqual(r.failures, [{ file: "one.json", problem: "cannot read the case (Unexpected end of JSON input)" }]);
+    assert.ok(lines.includes("  FAIL one.json: cannot read the case (Unexpected end of JSON input)"), lines.join("\n"));
+    assert.ok(lines.includes("  ok   two.json  (2 inputs)"), lines.join("\n"));
+    assert.deepEqual(summaryLines([r]), ["a / web  => FAIL 1/2 cases identical, 2 inputs, 2 recorded states"]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a .json.gz that is not gzip names its file and the other cases still run", () => {
+  const root = makeRoot({ a: { web: {} } });
+  const cases = path.join(root, "games", "a", "cases");
+  fs.writeFileSync(path.join(cases, "bad.json.gz"), "notgzip");
+  try {
+    const lines = [];
+    const [r] = verifyGames(root, ["a"], null, (l) => lines.push(l));
+    assert.equal(r.error, undefined);
+    assert.deepEqual([r.cases, r.passed], [2, 1]);
+    assert.deepEqual(r.failures, [{ file: "bad.json.gz", problem: "cannot read the case (incorrect header check)" }]);
+    assert.ok(lines.includes("  FAIL bad.json.gz: cannot read the case (incorrect header check)"), lines.join("\n"));
+    assert.ok(lines.includes("  ok   one.json  (2 inputs)"), lines.join("\n"));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
