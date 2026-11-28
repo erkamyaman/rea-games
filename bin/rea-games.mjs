@@ -67,6 +67,10 @@ async function main() {
       console.error(`usage: rea-games record <game>   (games: ${listGames(root).join(", ")})`);
       process.exit(2);
     }
+    if (rest.length > 1) {
+      console.error(`rea-games: record takes one game (or all), got: ${rest.join(" ")}`);
+      process.exit(2);
+    }
     const g = rest[0];
     const { dir, meta } = loadGame(root, g);
     const mod = await import(pathToFileURL(path.join(dir, meta.record)).href);
@@ -77,6 +81,10 @@ async function main() {
     return;
   }
   if (cmd === "pack") {
+    if (rest.length > 1) {
+      console.error(`rea-games: pack takes one game (or all), got: ${rest.join(" ")}`);
+      process.exit(2);
+    }
     let hadError = false;
     for (const g of rest[0] === "all" || !rest[0] ? listGames(root) : [rest[0]]) {
       try {
@@ -100,6 +108,10 @@ async function main() {
         if (v && !v.startsWith("-")) portName = v;
         else portMissing = true;
       } else positional.push(a);
+    }
+    if (positional.length > 1) {
+      console.error(`rea-games: verify takes one game (or all), got: ${positional.join(" ")}`);
+      process.exit(2);
     }
     const game = positional[0] || "all";
     if (portMissing) {
