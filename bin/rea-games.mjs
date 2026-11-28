@@ -121,7 +121,9 @@ async function main() {
     }
     const names = game === "all" ? listGames(root) : [game];
     const results = verifyGames(root, names, portName, console.log, { skipMissing: game === "all" });
-    if (results.length > 1) console.log(["", "summary", ...summaryLines(results).map((l) => "  " + l)].join("\n"));
+    if (results.length > 1 || (game === "all" && results.some((r) => r.error))) {
+      console.log(["", "summary", ...summaryLines(results).map((l) => "  " + l)].join("\n"));
+    }
     if (results.length && results.every((r) => r.skipped)) console.error(`no game has a "${portName}" port`);
     process.exit(results.some((r) => r.error || r.failures.length) || results.every((r) => r.skipped) ? 1 : 0);
   }

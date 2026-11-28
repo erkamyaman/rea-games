@@ -57,6 +57,22 @@ test("a failing build is that port's failure, and the other ports and games stil
   }
 });
 
+test("a broken game.json is summarized and the next game still runs", () => {
+  const root = makeRoot({ a: { web: {} }, b: { web: {} } });
+  try {
+    fs.writeFileSync(path.join(root, "games", "a", "game.json"), '{"name":');
+    const results = verifyGames(root, ["a", "b"], "web", quiet);
+    assert.equal(results.length, 2);
+    assert.match(results[0].error, /^games\/a\/game\.json is not valid JSON:/);
+    assert.equal(results[1].passed, 1);
+    const [failed, passed] = summaryLines(results);
+    assert.match(failed, /^a +=> FAIL games\/a\/game\.json is not valid JSON:/);
+    assert.match(passed, /^b \/ web +=> 1\/1 cases identical/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("a missing build command names the command and for cargo points to rustup", () => {
   const missingCargo = { build: ["cargo", "build"] };
   const missingGeneric = { build: ["rea-games-no-such-builder"] };
