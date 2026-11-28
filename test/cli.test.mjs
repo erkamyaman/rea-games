@@ -193,3 +193,19 @@ test("verify all --port skips games without that port, but fails when no game ha
   assert.equal(named.status, 1);
   assert.match(named.stdout, /FAIL bricks has no port "bevy" \(has: web\)/);
 });
+
+test("list continues past a broken game.json and exits 1", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rea-games-list-"));
+  try {
+    fs.cpSync(root, tmp, { recursive: true, filter: (src) => !src.includes(`${path.sep}.git${path.sep}`) && !src.endsWith(`${path.sep}.git`) });
+    fs.mkdirSync(path.join(tmp, "games", "aaa"), { recursive: true });
+    fs.writeFileSync(path.join(tmp, "games", "aaa", "game.json"), '{"name":');
+    const r = spawnSync(process.execPath, [path.join(tmp, "bin", "rea-games.mjs"), "list"], { encoding: "utf8", cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /games\/aaa\/game\.json is not valid JSON:/);
+    assert.match(r.stdout, /^blocks /m);
+    assert.match(r.stdout, /^paddles /m);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

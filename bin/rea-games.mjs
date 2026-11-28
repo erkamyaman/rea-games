@@ -43,16 +43,16 @@ async function main() {
       }
     }
   }
-  if (cmd === "list") {
-    for (const g of listGames(root)) {
+  if (cmd === "list") { let hadError = false;
+    for (const g of listGames(root)) try {
       const { dir, meta } = loadGame(root, g);
       const cd = path.join(dir, "cases");
       const cases = fs.existsSync(cd)
         ? fs.readdirSync(cd).filter((f) => f.endsWith(".json") || f.endsWith(".json.gz")).length
         : 0;
       console.log(`${g.padEnd(12)} original: ${meta.original.repo} (${meta.original.license})  ports: ${Object.keys(meta.ports).join(", ")}  cases: ${cases}`);
-    }
-    return;
+    } catch (e) { hadError = true; console.error(e.message); }
+    if (hadError) process.exitCode = 1; return;
   }
   if (cmd === "new") {
     if (!rest[0]) {
