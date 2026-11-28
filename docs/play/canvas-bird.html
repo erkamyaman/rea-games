@@ -17,6 +17,7 @@
   canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: pointer; }
   p { margin: 0; color: var(--muted); font-size: 14px; text-align: center; }
   b { color: var(--fg); font-weight: 600; }
+  .sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   nav.site { width: min(100%, 720px); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; }
   nav.site a { color: var(--muted); text-decoration: none; padding: 4px 0; border-radius: 4px; }
   nav.site a:hover { color: var(--fg); text-decoration: underline; }
@@ -27,7 +28,8 @@
 <body>
 <nav class="site" aria-label="rea-games"><a href="../index.html">&larr; All games</a><a class="repo" href="https://github.com/erkamyaman/rea-games">rea-games on GitHub</a></nav>
 <div id="wrap"><canvas id="c" width="1280" height="960" role="img" aria-label="Canvas Bird game"></canvas></div>
-<p><b>Tap</b>, click or press <b>Space</b> to flap. Pass the pipes. <span aria-live="polite" aria-atomic="true">Best: <b id="best">0</b></span></p>
+<p><b>Tap</b>, click or press <b>Space</b> to flap. Pass the pipes. Best: <b id="best">0</b></p>
+<p id="live" class="sr-only" aria-live="polite" aria-atomic="true"></p>
 <script>
 (() => {
 const __mod0 = (() => {
@@ -183,6 +185,7 @@ const { createBird } = __mod0;
 const W = 640, H = 480;
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
+const live = document.getElementById("live");
 const bestEl = document.getElementById("best");
 let best = 0;
 try { best = +localStorage.getItem("canvas-bird-best") || 0; } catch {}
@@ -296,10 +299,14 @@ function advance(dt) {
   if (out.includes("a:point")) beep(880, 0.12, "triangle", 0.08);
   if (out.includes("a:lose")) beep(160, 0.35, "sawtooth", 0.08);
   const v = game.view();
-  if (v.playing) { lastScore = v.score; wasPlaying = true; }
-  else if (wasPlaying) {
+  if (v.playing) {
+    if (!wasPlaying) live.textContent = "Flying";
+    lastScore = v.score;
+    wasPlaying = true;
+  } else if (wasPlaying) {
     wasPlaying = false; over = true;
     if (lastScore > best) { best = lastScore; bestEl.textContent = best; try { localStorage.setItem("canvas-bird-best", best); } catch {} }
+    live.textContent = `Game over, ${lastScore} points, best ${best}`;
   }
   return out;
 }
