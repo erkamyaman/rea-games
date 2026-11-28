@@ -37,6 +37,23 @@ test("bundle with an unknown option names it and exits 2 without writing anythin
   }
 });
 
+test("bundle --help and -h print usage, exit 0 and write nothing", () => {
+  const dir = copyRepo();
+  try {
+    const page = path.join(dir, "docs", "play", "mines.html");
+    const before = fs.readFileSync(page, "utf8");
+    for (const flag of ["--help", "-h"]) {
+      const r = spawnSync(process.execPath, [path.join(dir, "scripts", "bundle.mjs"), flag], { encoding: "utf8" });
+      assert.equal(r.status, 0, `${flag} exit`);
+      assert.match(r.stdout, /^usage: node scripts\/bundle\.mjs/);
+      assert.equal(r.stderr, "");
+    }
+    assert.equal(fs.readFileSync(page, "utf8"), before);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("bundle --check passes when every play page matches its web port", () => {
   const dir = copyRepo();
   try {
