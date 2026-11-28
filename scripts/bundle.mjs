@@ -123,8 +123,17 @@ export function bundleAll(rootDir = root, { check = false } = {}) {
   return { failed, stale };
 }
 
+const usage = `usage: node scripts/bundle.mjs           rebuild docs/play/*.html from the web ports
+       node scripts/bundle.mjs --check   say which play pages are stale, write nothing
+`;
+
 function main() {
-  const extra = process.argv.slice(2).filter((a) => a !== "--check");
+  const args = process.argv.slice(2);
+  if (args.includes("--help") || args.includes("-h")) {
+    process.stdout.write(usage);
+    return;
+  }
+  const extra = args.filter((a) => a !== "--check");
   if (extra.length) {
     console.error(`bundle.mjs: unknown option "${extra[0]}"`);
     process.exit(2);
