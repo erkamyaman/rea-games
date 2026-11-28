@@ -50,3 +50,23 @@ test("writes a game.json whose name and web port point at files that exist", () 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("writes a web page with the shared nav, title and head tags", () => {
+  const root = makeRoot();
+  try {
+    const dir = scaffold(root, "demo");
+    const html = fs.readFileSync(path.join(dir, "ports", "web", "index.html"), "utf8");
+    assert.ok(html.includes("<title>demo · rea-games</title>"), "the title uses the middle dot");
+    assert.ok(html.includes('<meta name="description" content="TODO: describe demo in one sentence.">'), "the page has a description");
+    assert.ok(html.includes('<meta property="og:title" content="demo · rea-games">'), "the page has an og:title");
+    assert.ok(html.includes('<meta property="og:description" content="TODO: describe demo in one sentence.">'), "the page has an og:description");
+    assert.ok(html.includes('<meta property="og:image" content="https://erkamyaman.github.io/rea-games/assets/social-preview.png">'), "the page has an og:image");
+    assert.equal(html.split('<nav class="site"').length - 1, 1, "one site nav");
+    assert.ok(html.includes('<a href="../index.html">&larr; All games</a>'), "the nav links back to all games");
+    assert.ok(html.includes('<a class="repo" href="https://github.com/erkamyaman/rea-games">rea-games on GitHub</a>'), "the nav links to the repo");
+    assert.ok(html.includes("nav.site a:focus-visible { outline:2px solid"), "the nav links have a visible focus outline");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
