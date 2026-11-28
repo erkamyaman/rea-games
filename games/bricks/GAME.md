@@ -6,7 +6,7 @@ layouts; `images/` and `sound/` are the page's arrows, background and sound libr
 `ports/web/bricks.mjs` was written from this page and from reading the original's rules, not by translating them
 line by line. The rebuild is called "bricks": Breakout is a trademark of its owner.
 
-## What was recorded and how
+## What was recorded
 
 The page runs unmodified in headless Chrome (`driver.mjs`) at a 700 x 700 viewport, so the canvas is 640 x 480 (the
 page's CSS picks that size below 1200 px wide). The state is read from the live game object `Game.current` after
@@ -30,20 +30,26 @@ A case is `{game, name, seed, clock0, levels, tape, inputs, trace}`.
   case and ships none of the original's level designs.
 - An input is `{dt, keys, late?, answer?}`. `keys` is an ordered list of `+key` (key down) and `-key` (key up), key one
   of `left right a d space enter esc up down`.
-- `trace[0]` is the state after load, `trace[i]` the state after `inputs[i-1]`. A state is:
+- `trace[0]` is the state after load, `trace[i]` the state after `inputs[i-1]`.
 
-  ```
-  {state: "menu" | "game", level (0-based), score, vscore, highscore, lives,
-   paddle: {x, left, right},          left/right: 1 while that direction is held
-   ball: {x, y, dx, dy, speed, moving, countdown, label},
-   bricks: one char per brick of the level, "o" standing, "x" hit,
-   last}                              the frame loop's last timestamp (whole ms)
-  ```
+The inputs come from scripted players and bots that look only at the previous state (`record.mjs`). There are 37
+cases (see Coverage).
 
-Numbers are compared exactly (`lib/compare.mjs`). The inputs come from scripted players and bots that look only at
-the previous state (`record.mjs`).
+## State that is compared
 
-## Sizes
+A state is:
+
+```
+{state: "menu" | "game", level (0-based), score, vscore, highscore, lives,
+ paddle: {x, left, right},          left/right: 1 while that direction is held
+ ball: {x, y, dx, dy, speed, moving, countdown, label},
+ bricks: one char per brick of the level, "o" standing, "x" hit,
+ last}                              the frame loop's last timestamp (whole ms)
+```
+
+Numbers are compared exactly (`lib/compare.mjs`).
+
+## Constants
 
 Everything is measured in **chunks**: `chunk = floor(min(640, 480) / (max(30, 25) + 4)) = 14` px.
 
@@ -58,7 +64,17 @@ Everything is measured in **chunks**: `chunk = floor(min(640, 480) / (max(30, 25
 
 A box's edges are `left = x`, `right = x + w`, `top = y`, `bottom = y + h`.
 
-## Timers (the order of everything)
+## Randomness (the tape order)
+
+One number per entry into the menu: the paddle's position. At load, after every lost game and after every "yes" to
+abandon. Nothing else draws. A port that draws one more (or one fewer) fails on `tapeUsed`.
+
+## Order of operations in one step
+
+A step is: the key events, in order (Menu and game, below), then the timers that come due in it (Timers): each frame
+of the frame loop runs `update(dt)` (One frame), and each countdown tick runs `launch` (The ball).
+
+### Timers
 
 The original's frame loop is `setInterval(loop, 1000 / 60)` and the launch countdown a chain of `setTimeout(.., 1000)`.
 The recorder's clock, and the port's copy of it, runs them like this:
@@ -73,7 +89,7 @@ The recorder's clock, and the port's copy of it, runs them like this:
 `loop`: `now = floor(t)`; `update((now - last) / 1000)`; `last = now`. So a 60 Hz frame sees 16 or 17 ms, and a late
 frame sees the whole gap. There is no cap on that `dt`.
 
-## One frame: `update(dt)`
+### One frame: `update(dt)`
 
 1. **Paddle.** `amount = right - left` (1, 0 or -1, both held cancel). If not 0: `x = min(maxX, max(minX, x + amount * dt * speed))`.
 2. **Ball** (below). In the menu, or before launch, the ball sits on the paddle: `x = paddle.x + paddle.w / 2`,
@@ -82,7 +98,7 @@ frame sees the whole gap. There is no cap on that `dt`.
 
 The paddle moves in the menu as well (the ball rides on it).
 
-## The ball
+### The ball
 
 When moving, with `vx = dx * speed`, `vy = dy * speed`, `nx = vx * dt`, `ny = vy * dt`:
 
@@ -129,7 +145,7 @@ moving or a countdown is running. `countdown` goes 3, 2, 1, 0 (starting at 3 whe
 So the ball leaves 2 s after a ball starts, and "go!" stays one more second. **Launch now** (Space or Enter in a game):
 if the ball is not moving, cancel the countdown and start moving towards `(1, -1)`.
 
-## Menu and game
+### Menu and game
 
 - **Load**: the menu is entered (below), then the frame loop starts (`last = floor(T0)`).
 - **Entering the menu** (load, a lost game, an abandoned game): the current level is laid out again, the paddle is put at
@@ -149,12 +165,9 @@ key up: Space/Enter (play in the menu, launch now in a game), Escape (abandon, i
 menu). A key acts in the state the game was in when its event started: the key up that starts a game does not also
 launch the ball.
 
-## Randomness (the tape order)
+## Quirks
 
-One number per entry into the menu: the paddle's position. At load, after every lost game and after every "yes" to
-abandon. Nothing else draws. A port that draws one more (or one fewer) fails on `tapeUsed`.
-
-## Quirks (kept on purpose, all in the recording)
+Kept on purpose, all in the recording:
 
 - The ball is lost only when its centre leaves the 640 x 480 canvas, about 65 px below the court's floor.
 - Answering "no" to "Abandon game?" still restarts the frame loop: the next frame's `dt` is the time since the question,
@@ -167,7 +180,7 @@ abandon. Nothing else draws. A port that draws one more (or one fewer) fails on 
 - The game reads `soundManager` as a bare global: if the sound library has not loaded, the first brick, paddle hit or
   lost ball throws. The recorder waits for it; the port has no sound.
 
-## What is NOT modelled, and why that is safe
+## Not modelled, and why that is safe
 
 - **Drawing** (`draw`, `render`, `measure`, `initCanvas`, the cached canvases, labels' positions): they only read the
   game and write pixels. The label's position is computed when it is set but nothing reads it for play.
@@ -180,7 +193,7 @@ abandon. Nothing else draws. A port that draws one more (or one fewer) fails on 
   and the ball. Never triggered; other canvas sizes are not recorded.
 - **The stats overlay** (`stats: false`).
 
-## Coverage of the recordings
+## Coverage
 
 Read off the traces by `analyze()` in `record.mjs` (independent of the port). 37 cases, 209,600 inputs, 209,637 states,
 created by `rea-games record bricks` (cases are stored gzipped, 5.8 MB):
@@ -205,3 +218,7 @@ created by `rea-games record bricks` (cases are stored gzipped, 5.8 MB):
 Breaking the port on purpose made `verify` fail: the speed gained per brick 10 -> 9 (35 of 37 cases failed, the first
 difference in the last bit of `ball.dx`), a key acting in the state after an earlier key (35 of 37), the paddle's centre
 one pixel off (33 of 37).
+
+## Not covered
+
+Touch (dragging the paddle) and window resizing are not recorded, and the canvas is only ever 640 x 480.
