@@ -85,9 +85,16 @@ async function main() {
       console.error(`rea-games: pack takes one game (or all), got: ${rest.join(" ")}`);
       process.exit(2);
     }
+    let hadError = false;
     for (const g of rest[0] === "all" || !rest[0] ? listGames(root) : [rest[0]]) {
-      console.log(packLine(g, packCases(root, g)));
+      try {
+        console.log(packLine(g, packCases(root, g)));
+      } catch (e) {
+        hadError = true;
+        console.error(e.message);
+      }
     }
+    if (hadError) process.exitCode = 1;
     return;
   }
   if (cmd === "verify") {
