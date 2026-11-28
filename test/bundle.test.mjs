@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bundleHtml, leftoverImport } from "../scripts/bundle.mjs";
+import { bundleAll, bundleHtml, leftoverImport } from "../scripts/bundle.mjs";
 
 const page = path.join(path.dirname(fileURLToPath(import.meta.url)), "../games/mines/ports/web/index.html");
 const html = (indent) =>
@@ -116,4 +116,24 @@ test("a regex after => or return holding a quote does not hide an export", () =>
     const out = bundleModule(`export const W = ${left} / 2 + "/", S = "; export";\n`)();
     assert.match(out, /^return \{ W, S \};$/m, left);
   }
+});
+
+test("bundleAll does not overwrite docs/play when an import cannot be inlined", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rea-bundle-all-"));
+  fs.mkdirSync(path.join(dir, "games/demo/ports/web"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "docs/play"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "games/demo/game.json"),
+    JSON.stringify({ ports: { web: { play: "ports/web/index.html" } } })
+  );
+  fs.writeFileSync(
+    path.join(dir, "games/demo/ports/web/index.html"),
+    `<script type="module">\nimport confetti from "https://cdn.example/confetti.mjs";\n</script>\n`
+  );
+  const existingPlay = path.join(dir, "docs/play/demo.html");
+  fs.writeFileSync(existingPlay, "<!-- previous valid page -->\n");
+
+  const { failed } = bundleAll(dir);
+  assert.equal(failed, true);
+  assert.equal(fs.readFileSync(existingPlay, "utf8"), "<!-- previous valid page -->\n");
 });
