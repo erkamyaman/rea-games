@@ -30,7 +30,7 @@ other seeds for clouds, stars and blinking; traces and tapes were identical.
 
 `docs/play/*.html` are single files made by `node scripts/bundle.mjs`. 2048 was opened from `file://` in headless
 Chromium without console errors and played a few moves. Dino and Canvas Bird pages were loaded at desktop and phone width
-by their authors with no errors; they have not been played by a person. The Blocks page was opened from `file://` in headless Chrome on 2026-11-28 with no console errors; it has not been played by a person. The Blocks web port is verified (36 of 36 cases, see below), and a demo GIF of the port matched 152 of 152 frames.
+by their authors with no errors; they have not been played by a person. The Bricks page was opened in a browser from GitHub Pages on 2026-11-28; it rendered, Space started the launch countdown and the paddle keys responded, with no error shown on the page, and it was played briefly in the browser. The Paddles page was opened the same way on 2026-11-28; a one-player game started and the ball moved, with no error shown on the page, and it was played briefly in the browser. The Mines page was opened the same way on 2026-11-28; the Easy board rendered and clicking a tile revealed a number, with no error shown on the page, and it was played briefly in the browser. The Blocks page was opened from `file://` in headless Chrome on 2026-11-28 with no console errors; it has not been played by a person. The Blocks web port is verified (36 of 36 cases, see below), and a demo GIF of the port matched 152 of 152 frames.
 
 ## 2048 Bevy port
 
