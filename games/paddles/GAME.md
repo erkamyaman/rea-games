@@ -6,7 +6,7 @@ pictures, `sounds/` four effects). The tutorial steps of the original repository
 The port in `ports/web/paddles.mjs` was written from this page and from reading the original's rules, not by
 translating them line by line. The rebuild is called "paddles": Pong is a trademark of its owner.
 
-## What was recorded and how
+## What was recorded
 
 The page runs unmodified in headless Chrome (`driver.mjs`). The canvas is always 640 x 480 (the game sets it). The
 page keeps its game object in a local variable, so the driver wraps `Pong.initialize` to remember `this` and then runs
@@ -21,7 +21,13 @@ it unchanged; the state is read from that object after every input. Only the pag
 
 A case is `{game, name, seed, clock0, tape, inputs, trace}`. An input is `{dt, keys, late?, answer?}`; `keys` is an
 ordered list of `+key` (down) and `-key` (up), key one of `0 1 2 esc q a p l`. `trace[0]` is the state after load,
-`trace[i]` the state after `inputs[i-1]`:
+`trace[i]` the state after `inputs[i-1]`.
+
+The inputs come from scripted players and bots that look only at the previous state (`record.mjs`).
+
+## State that is compared
+
+A recorded state is:
 
 ```
 {playing, scores: [left, right], winner (0, 1 or null),
@@ -31,8 +37,7 @@ ordered list of `+key` (down) and `-key` (up), key one of `0 1 2 esc q a p l`. `
  last}                                             the frame loop's last timestamp (whole ms)
 ```
 
-Numbers are compared exactly (`lib/compare.mjs`). The inputs come from scripted players and bots that look only at
-the previous state (`record.mjs`).
+Numbers are compared exactly (`lib/compare.mjs`).
 
 ## Constants
 
@@ -44,7 +49,13 @@ the previous state (`record.mjs`).
 | win | the first to 9 points |
 | levels | `level = 8 + (own score - other score)`; level `n` reacts after `0.2 + n/10` s (the literals 0.2, 0.3 ... 1.8) and errs by up to `40 + 10 n` px |
 
-## Order of operations
+## Randomness (the tape order)
+
+One number per serve (its `y`) and one per new prediction, in the order they happen inside a frame: left paddle's
+prediction, right paddle's, then a serve after a point. A port that predicts once more (or once less) fails on
+`tapeUsed`.
+
+## Order of operations in one step
 
 The frame loop is a 60 Hz interval: `now = floor(t)`, `update((now - last) / 1000)`, `last = now`. No cap on `dt`.
 
@@ -86,7 +97,7 @@ game's start), `y = 17 + random() * (463 - 17)`, both velocities 157.5 (`dx` sig
 3. With a prediction: above `paddle top + 25` press up, below `paddle bottom - 25` press down, otherwise let go. With
    none, the keys stay as they were.
 
-## Keys and states
+### Keys and states
 
 | key | down | up |
 |---|---|---|
@@ -100,13 +111,7 @@ last prediction. Only a paddle the computer held lets go of its keys then; a key
 (hold Q in a two-player game and give up: the left paddle keeps moving up). Handing a paddle to the computer does not
 let go of keys already held either.
 
-## Randomness (the tape order)
-
-One number per serve (its `y`) and one per new prediction, in the order they happen inside a frame: left paddle's
-prediction, right paddle's, then a serve after a point. A port that predicts once more (or once less) fails on
-`tapeUsed`.
-
-## Quirks (kept on purpose, all in the recording)
+## Quirks
 
 - The half step of acceleration is added to `y` downwards whatever the ball's vertical direction.
 - A computer paddle with no prediction keeps its keys as they were, so it can keep sliding to a wall.
@@ -116,7 +121,7 @@ prediction, right paddle's, then a serve after a point. A port that predicts onc
 - Keys held when a paddle is handed to the computer stay held until the computer changes them.
 - Abandon answered no still restarts the frame loop (6 declines recorded).
 
-## What is NOT modelled, and why that is safe
+## Not modelled, and why that is safe
 
 - **Drawing** (`draw`, the menu pictures, digits, footprints, predictions overlay): they only read the game.
 - **Sound**: the page starts with sound off; `wall` and `goal` sounds are commented out in the original anyway.
@@ -124,7 +129,7 @@ prediction, right paddle's, then a serve after a point. A port that predicts onc
   change `ball.footprints`, which nothing in play reads.
 - **The cursor** (`hideCursor`, `showCursor`): a CSS style.
 
-## Coverage of the recordings
+## Coverage
 
 Read off the traces by `analyze()` in `record.mjs` (independent of the port). 19 cases, 198,300 inputs, 198,319 states,
 created by `rea-games record paddles` (cases are stored gzipped, 6.6 MB):
@@ -148,3 +153,7 @@ or bottom and a second hit in one step).
 
 Breaking the port on purpose made `verify` fail: acceleration 8 -> 7.9 (16 of 19 cases failed), the spin of an upward
 paddle swapped (15 of 19), the computer's dead zone 5 -> 6 px (14 of 19).
+
+## Not covered
+
+The computer's level 0 (behind by 8 points) never happened.
