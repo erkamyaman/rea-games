@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
-        with: { node-version: 22 }
+        with: { node-version: 26 }
       - name: Unit tests (lib/, Node only)
         run: npm test
       - name: Play pages match their web ports
