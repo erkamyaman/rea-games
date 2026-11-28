@@ -1,7 +1,7 @@
 # 2048: behavior spec
 
 Original: [gabrielecirulli/2048](https://github.com/gabrielecirulli/2048) (MIT), vendored unmodified in
-`originals/2048/src` (the rules live in `game_manager.js`, `grid.js`, `tile.js`). Both ports in this folder
+`originals/2048/src` (the rules live in `game_manager.js`, `grid.js`, `tile.js`). All three ports in this folder
 were written from this page, not by translating those files.
 
 ## What was recorded

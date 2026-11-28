@@ -30,7 +30,7 @@ other seeds for clouds, stars and blinking; traces and tapes were identical.
 
 `docs/play/*.html` are single files made by `node scripts/bundle.mjs`. 2048 was opened from `file://` in headless
 Chromium without console errors and played a few moves. Dino and Canvas Bird pages were loaded at desktop and phone width
-by their authors with no errors; they have not been played by a person.
+by their authors with no errors; they have not been played by a person. The Blocks page was opened from `file://` in headless Chrome on 2026-11-28 with no console errors; it has not been played by a person. The Blocks web port is verified (36 of 36 cases, see below), and a demo GIF of the port matched 152 of 152 frames.
 
 ## 2048 Bevy port
 
@@ -120,13 +120,13 @@ Minesweeper is a trademark; see `NOTICE`.
 - The Dino and Canvas Bird originals are small copies of open-source projects (see `NOTICE`), not the commercial games.
 - Dino's first key press starts a second update chain in the original (two updates per frame); the port reproduces it.
   It was found by comparing, and is written up in `games/dino/GAME.md`.
-- Unity and Bevy ports do not exist yet. The Godot port covers 2048 only. Its playable scene (`main.tscn`) was loaded
+- Godot and Bevy ports now exist for 2048, Dino, Canvas Bird and Blocks (see the tables above); Bricks, Paddles and Mines have a web port only, and Unity has not been started. For 2048, the Godot playable scene (`main.tscn`) was loaded
   headless and fed key presses without errors; nobody has looked at it on screen. Godot 4.4.1 was downloaded from the
   official release and checked against the published SHA-512 before use. Breaking the GDScript port (spawn odds, win
   threshold) made 16 and 3 of 19 cases pass, so the check bites there too.
-- The repository has not been pushed anywhere. Cases are stored gzipped (`rea-games pack`).
+- Cases are stored gzipped (`rea-games pack`).
 - Agent plugin manifests: `.claude-plugin` (Claude), `.codex-plugin` (Codex), and `.agents/plugins/marketplace.json`
   (agent-agnostic marketplace). `test/plugin.test.mjs` keeps both `plugin.json` versions equal to `package.json`.
   They have not been installed end-to-end here.
 - `node games/dino/record.mjs --visual` reads unpacked `cases/*.json`; run `rea-games record dino` first (it also clears packed copies).
-- CI (`.github/workflows/verify.yml`) has never run.
+- CI ([`.github/workflows/verify.yml`](https://github.com/erkamyaman/rea-games/actions/workflows/verify.yml)) runs on every push; recent runs on `main` pass.

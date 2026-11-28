@@ -25,12 +25,12 @@ for the browser games and is already on most machines that develop for the web).
 not need a Rust or Node expertise to run `verify`.
 
 **Web first, then engines.** A browser port is playable from a link, which is what people share, and it is the cheapest to
-verify. Rust (Bevy-ready logic) ships for 2048 as proof that the protocol is engine-neutral. Godot and Unity ports are
+verify. Rust (Bevy-ready logic) now ships for 2048, Dino, Canvas Bird and Blocks as proof that the protocol is engine-neutral, and Godot ports are verified for the same four games. Unity ports are
 welcome but count as verified only when a headless runner passes the cases.
 
 **Three small open-source games first.** 2048 (MIT), the Chrome Dino (BSD-3-Clause) and Canvas Bird (MIT) have source we
 may run and redistribute, are small enough to verify completely, and cover pure logic, physics with timing, and
-black-box observation of a game whose state is private.
+black-box observation of a game whose state is private. Blocks (MIT) was added fourth on the same terms: small enough to verify completely, and it covers falling pieces, rotation and line clears, which the first three do not.
 
 **No art, sound or names from an original.** Rebuilds draw their own shapes. See `NOTICE`.
 
